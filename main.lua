@@ -2,7 +2,6 @@ local TweenService        = game:GetService("TweenService")
 local UserInputService   = game:GetService("UserInputService")
 local CoreGui            = game:GetService("CoreGui")
 
--- Данные скриптов
 local scripts = {
     {
         displayName = "Forsaken",
@@ -14,36 +13,44 @@ local scripts = {
     },
     {
         displayName = "Starlight",
-        placeId     = 0, -- универсальный режим
+        placeId     = 0,
         scriptName  = "Starlight",
         author      = "—",
         url         = "https://starlightrbx.netlify.app/",
         description = "Backdoor finder for places"
+    },
+    {
+        displayName = "Infinite Yield",
+        placeId     = 0,
+        scriptName  = "Infinite Yield",
+        author      = "EdgeIY",
+        url         = "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source",
+        description = "Мощный админ-скрипт с тысячами команд"
+    },
+    {
+        displayName = "Dex Explorer",
+        placeId     = 0,
+        scriptName  = "Dex",
+        author      = "infyiff",
+        url         = "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua",
+        description = "Полный эксплорер элементов и скриптов игры"
     }
 }
 
--- Создаём ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name             = "FoxVukHub"
 ScreenGui.ResetOnSpawn     = false
 ScreenGui.ZIndexBehavior   = Enum.ZIndexBehavior.Sibling
--- Пытаемся защитить GUI от удаления
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-    print("[FoxVukHub] syn.protect_gui applied")
-end
+if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
 ScreenGui.Parent = CoreGui
-print("[FoxVukHub] ScreenGui parented to CoreGui")
 
--- Основная панель
 local Main = Instance.new("Frame", ScreenGui)
 Main.AnchorPoint = Vector2.new(0.5,0.5)
 Main.Position    = UDim2.new(0.5,0,0.5,0)
-Main.Size        = UDim2.new(0, 500, 0, 350)
+Main.Size        = UDim2.new(0, 500, 0, 400)
 Main.BackgroundColor3 = Color3.fromRGB(30,30,30)
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
 
--- Заголовок
 local Title = Instance.new("TextLabel", Main)
 Title.Size               = UDim2.new(1,0,0,40)
 Title.Position           = UDim2.new(0,0,0,0)
@@ -53,7 +60,6 @@ Title.Font               = Enum.Font.GothamBold
 Title.TextSize           = 24
 Title.TextColor3         = Color3.fromRGB(255,255,255)
 
--- Подзаголовок
 local Subtitle = Instance.new("TextLabel", Main)
 Subtitle.Size            = UDim2.new(1,0,0,20)
 Subtitle.Position        = UDim2.new(0,0,0,40)
@@ -63,7 +69,6 @@ Subtitle.Font            = Enum.Font.Gotham
 Subtitle.TextSize        = 14
 Subtitle.TextColor3      = Color3.fromRGB(200,200,200)
 
--- Список режимов
 local ListFrame = Instance.new("Frame", Main)
 ListFrame.Position       = UDim2.new(0,10,0,70)
 ListFrame.Size           = UDim2.new(0,150,1,-80)
@@ -72,16 +77,13 @@ local UIList = Instance.new("UIListLayout", ListFrame)
 UIList.Padding           = UDim.new(0,8)
 UIList.SortOrder         = Enum.SortOrder.Name
 
--- Панель деталей
 local Details = Instance.new("Frame", Main)
 Details.Position         = UDim2.new(0,170,0,70)
 Details.Size             = UDim2.new(1,-180,1,-80)
 Details.BackgroundTransparency = 1
 
--- Функция показа деталей
 local function showDetails(data)
     Details:ClearAllChildren()
-    local y = 0
 
     local function newLabel(text, size, offset)
         local lbl = Instance.new("TextLabel", Details)
@@ -91,8 +93,7 @@ local function showDetails(data)
         lbl.Text               = text
         lbl.Font               = Enum.Font.Gotham
         lbl.TextSize           = size == 30 and 22 or 16
-        lbl.TextColor3         = Color3.fromRGB(255,255,255)
-        if size ~= 30 then lbl.TextColor3 = Color3.fromRGB(200,200,200) end
+        lbl.TextColor3         = size == 30 and Color3.fromRGB(255,255,255) or Color3.fromRGB(200,200,200)
         lbl.TextWrapped        = size == 14
         return lbl
     end
@@ -120,7 +121,6 @@ local function showDetails(data)
         TweenService:Create(execBtn, TweenInfo.new(0.2), {BackgroundColor3=Color3.fromRGB(50,50,50)}):Play()
     end)
     execBtn.MouseButton1Click:Connect(function()
-        print("[FoxVukHub] Execute clicked for", data.displayName)
         if data.placeId == 0 or game.PlaceId == data.placeId then
             if getgenv then
                 getgenv().BloxtrapRPC      = "true"
@@ -130,16 +130,13 @@ local function showDetails(data)
             local ok, err = pcall(function()
                 loadstring(game:HttpGetAsync(data.url))()
             end)
-            if not ok then
-                warn("[FoxVukHub] Ошибка при запуске скрипта:", err)
-            end
+            if not ok then warn("[FoxVukHub] Ошибка:", err) end
         else
-            warn("[FoxVukHub] Неправильный PlaceId, текущий:", game.PlaceId)
+            warn("[FoxVukHub] Неправильный PlaceId:", game.PlaceId)
         end
     end)
 end
 
--- Заполняем список кнопками
 for _, data in ipairs(scripts) do
     local btn = Instance.new("TextButton", ListFrame)
     btn.Size           = UDim2.new(1,0,0,40)
@@ -168,11 +165,9 @@ for _, data in ipairs(scripts) do
     end)
 end
 
--- Переключение видимости GUI клавишей RightShift
 UserInputService.InputBegan:Connect(function(input, gp)
     if not gp and input.KeyCode == Enum.KeyCode.RightShift then
         ScreenGui.Enabled = not ScreenGui.Enabled
-        print("[FoxVukHub] GUI toggled, now:", ScreenGui.Enabled)
     end
 end)
 
