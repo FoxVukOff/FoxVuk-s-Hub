@@ -1,4 +1,5 @@
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 local scripts = {
@@ -23,6 +24,7 @@ local scripts = {
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "FoxVukHub"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = true  -- видимость GUI
 
 local Main = Instance.new("Frame", ScreenGui)
 Main.AnchorPoint = Vector2.new(0.5,0.5)
@@ -31,18 +33,37 @@ Main.Size = UDim2.new(0, 500, 0, 350)
 Main.BackgroundColor3 = Color3.fromRGB(30,30,30)
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
 
-local ListFrame = Instance.new("Frame", Main)
-ListFrame.Position = UDim2.new(0,10,0,10)
-ListFrame.Size = UDim2.new(0,150,1,-20)
-ListFrame.BackgroundTransparency = 1
+-- Заголовок
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1,0,0,40)
+Title.Position = UDim2.new(0,0,0,0)
+Title.BackgroundTransparency = 1
+Title.Text = "FoxVuk Hub"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 24
+Title.TextColor3 = Color3.fromRGB(255,255,255)
 
+-- Подзаголовок
+local Subtitle = Instance.new("TextLabel", Main)
+Subtitle.Size = UDim2.new(1,0,0,20)
+Subtitle.Position = UDim2.new(0,0,0,40)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "Made by FoxVuk"
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.TextSize = 14
+Subtitle.TextColor3 = Color3.fromRGB(200,200,200)
+
+local ListFrame = Instance.new("Frame", Main)
+ListFrame.Position = UDim2.new(0,10,0,70)
+ListFrame.Size = UDim2.new(0,150,1,-80)
+ListFrame.BackgroundTransparency = 1
 local UIList = Instance.new("UIListLayout", ListFrame)
 UIList.Padding = UDim.new(0,8)
 UIList.SortOrder = Enum.SortOrder.Name
 
 local Details = Instance.new("Frame", Main)
-Details.Position = UDim2.new(0,170,0,10)
-Details.Size = UDim2.new(1,-180,1,-20)
+Details.Position = UDim2.new(0,170,0,70)
+Details.Size = UDim2.new(1,-180,1,-80)
 Details.BackgroundTransparency = 1
 
 local function showDetails(data)
@@ -53,13 +74,13 @@ local function showDetails(data)
     title.Position = UDim2.new(0,0,0,0)
     title.Text = data.displayName
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 24
+    title.TextSize = 22
     title.TextColor3 = Color3.fromRGB(255,255,255)
     title.BackgroundTransparency = 1
 
     local idLabel = Instance.new("TextLabel", Details)
     idLabel.Size = UDim2.new(1,0,0,20)
-    idLabel.Position = UDim2.new(0,0,0,40)
+    idLabel.Position = UDim2.new(0,0,0,35)
     idLabel.Text = (data.placeId ~= 0 and "Place ID: "..data.placeId) or "Place ID: Universal"
     idLabel.Font = Enum.Font.Gotham
     idLabel.TextSize = 16
@@ -68,7 +89,7 @@ local function showDetails(data)
 
     local scriptLabel = Instance.new("TextLabel", Details)
     scriptLabel.Size = UDim2.new(1,0,0,20)
-    scriptLabel.Position = UDim2.new(0,0,0,65)
+    scriptLabel.Position = UDim2.new(0,0,0,60)
     scriptLabel.Text = "Script: "..data.scriptName
     scriptLabel.Font = Enum.Font.Gotham
     scriptLabel.TextSize = 16
@@ -77,7 +98,7 @@ local function showDetails(data)
 
     local authorLabel = Instance.new("TextLabel", Details)
     authorLabel.Size = UDim2.new(1,0,0,20)
-    authorLabel.Position = UDim2.new(0,0,0,90)
+    authorLabel.Position = UDim2.new(0,0,0,85)
     authorLabel.Text = "Author: "..data.author
     authorLabel.Font = Enum.Font.Gotham
     authorLabel.TextSize = 16
@@ -86,7 +107,7 @@ local function showDetails(data)
 
     local descLabel = Instance.new("TextLabel", Details)
     descLabel.Size = UDim2.new(1,0,0,40)
-    descLabel.Position = UDim2.new(0,0,0,115)
+    descLabel.Position = UDim2.new(0,0,0,110)
     descLabel.Text = "Description: "..data.description
     descLabel.Font = Enum.Font.Gotham
     descLabel.TextSize = 14
@@ -96,7 +117,7 @@ local function showDetails(data)
 
     local execBtn = Instance.new("TextButton", Details)
     execBtn.Size = UDim2.new(0,200,0,40)
-    execBtn.Position = UDim2.new(0,0,0,165)
+    execBtn.Position = UDim2.new(0,0,0,160)
     execBtn.Text = "Execute"
     execBtn.Font = Enum.Font.GothamBold
     execBtn.TextSize = 18
@@ -149,3 +170,10 @@ for _, data in ipairs(scripts) do
         showDetails(data)
     end)
 end
+
+-- Переключение видимости GUI клавишей RightShift
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightShift then
+        ScreenGui.Enabled = not ScreenGui.Enabled
+    end
+end)
