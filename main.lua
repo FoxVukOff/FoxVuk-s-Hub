@@ -1,4 +1,4 @@
--- FoxVuk Hub v1.1 — Полный код с вкладкой About и поддержкой перетаскивания
+-- FoxVuk Hub v1.1.1 — Полный код с вкладкой About, подсказкой по RightShift и поддержкой перетаскивания
 
 local TweenService        = game:GetService("TweenService")
 local UserInputService    = game:GetService("UserInputService")
@@ -90,7 +90,7 @@ ScreenGui.Enabled = true
 local Main = Instance.new("Frame", ScreenGui)
 Main.AnchorPoint    = Vector2.new(0.5,0.5)
 Main.Position       = UDim2.new(0.5,0,0.5,0)
-Main.Size           = UDim2.new(0,520,0,440)
+Main.Size           = UDim2.new(0,520,0,480)
 Main.BackgroundColor3 = Color3.fromRGB(30,30,30)
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
 
@@ -106,11 +106,22 @@ local TitleLabel = Instance.new("TextLabel", TitleBar)
 TitleLabel.Size               = UDim2.new(1,-10,1,0)
 TitleLabel.Position           = UDim2.new(0,5,0,0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text               = "FoxVuk Hub - Made by FoxVuk"
+TitleLabel.Text               = "FoxVuk Hub v1.1.1 - Made by FoxVuk"
 TitleLabel.Font               = Enum.Font.GothamBold
 TitleLabel.TextSize           = 18
 TitleLabel.TextColor3         = Color3.fromRGB(255,255,255)
 TitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+
+-- Подсказка по RightShift
+local HintLabel = Instance.new("TextLabel", TitleBar)
+HintLabel.Size               = UDim2.new(0,200,1,0)
+HintLabel.Position           = UDim2.new(1,-205,0,0)
+HintLabel.BackgroundTransparency = 1
+HintLabel.Text               = "[RightShift] toggle GUI"
+HintLabel.Font               = Enum.Font.Gotham
+HintLabel.TextSize           = 14
+HintLabel.TextColor3         = Color3.fromRGB(200,200,200)
+HintLabel.TextXAlignment     = Enum.TextXAlignment.Right
 
 -- Перетаскивание окна
 do
@@ -191,7 +202,7 @@ end
 local function showAbout()
     clearDetails()
     makeLabel("FoxVuk Hub", Enum.Font.GothamBold, 22, Color3.new(1,1,1))
-    makeLabel("Версия: 1.1", Enum.Font.Gotham, 16, Color3.new(0.8,0.8,0.8))
+    makeLabel("Версия: 1.1.1 (добавлена подсказка о RightShift)", Enum.Font.Gotham, 16, Color3.new(0.8,0.8,0.8))
     makeLabel("Made by FoxVuk", Enum.Font.Gotham, 16, Color3.new(0.8,0.8,0.8))
     makeLabel("Поддержка на телефоне пока не готова, но скоро выйдет!", Enum.Font.Gotham, 14, Color3.new(0.8,0.8,0.8))
 end
@@ -290,4 +301,4 @@ end)
 -- Отображаем вкладку About по умолчанию
 showAbout()
 
-print("[FoxVukHub] v1.1 Loaded successfully")
+print("[FoxVukHub] v1.1.1 Loaded successfully — добавлена подсказка про RightShift")
