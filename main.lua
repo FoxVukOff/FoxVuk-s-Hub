@@ -1,7 +1,11 @@
-local TweenService      = game:GetService("TweenService")
-local UserInputService  = game:GetService("UserInputService")
-local CoreGui           = game:GetService("CoreGui")
+-- FoxVuk Hub v1.0 — Полный код с поддержкой перетаскивания и проверки устройства
 
+local TweenService        = game:GetService("TweenService")
+local UserInputService    = game:GetService("UserInputService")
+local CoreGui             = game:GetService("CoreGui")
+local StarterGui          = game:GetService("StarterGui")
+
+-- Таблица со скриптами
 local scripts = {
     {
         displayName = "Forsaken",
@@ -34,82 +38,183 @@ local scripts = {
         author      = "infyiff",
         url         = "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua",
         description = "Полный эксплорер элементов и скриптов игры"
+    },
+    {
+        displayName = "CMD-X",
+        placeId     = 0,
+        scriptName  = "CMD-X",
+        author      = "CMD-X Team",
+        url         = "https://raw.githubusercontent.com/CMD-X/CMD-X/master/source",
+        description = "Универсальный админ-скрипт с плагинами"
+    },
+    {
+        displayName = "Simple ESP",
+        placeId     = 0,
+        scriptName  = "ESP",
+        author      = "EdgeIY",
+        url         = "https://raw.githubusercontent.com/EdgeIY/ESP/main/ESP.lua",
+        description = "ESP для игроков и объектов"
+    },
+    {
+        displayName = "Simple Spy",
+        placeId     = 0,
+        scriptName  = "Simple Spy",
+        author      = "ltgirvan",
+        url         = "https://raw.githubusercontent.com/ltgirvan/Roblox/main/SimpleSpy.lua",
+        description = "Лог всех RemoteEvent и RemoteFunction"
     }
 }
 
--- создаём GUI
+-- Функция: показать уведомление и удалить GUI (для телефонов)
+local function showMobileWarning()
+    -- Создаём простое диалоговое окно
+    local warnGui = Instance.new("ScreenGui", CoreGui)
+    warnGui.Name = "FoxVukHub_MobileWarn"
+    local frame = Instance.new("Frame", warnGui)
+    frame.Size = UDim2.new(0, 300, 0, 150)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+    frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, -20, 0, 60)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Скрипт пока не поддерживается на телефоне"
+    label.TextWrapped = true
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 18
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0,100,0,30)
+    btn.Position = UDim2.new(0.5, -50, 1, -40)
+    btn.Text = "OK"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 18
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+
+    btn.MouseButton1Click:Connect(function()
+        warnGui:Destroy()
+    end)
+end
+
+-- Проверка устройства: если телефон — показываем предупреждение и выходим
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+    showMobileWarning()
+    return
+end
+
+-- Создаём главный GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name           = "FoxVukHub"
 ScreenGui.ResetOnSpawn   = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
 ScreenGui.Parent = CoreGui
+ScreenGui.Enabled = true
 
--- основной фрейм
+-- Основной фрейм
 local Main = Instance.new("Frame", ScreenGui)
-Main.AnchorPoint = Vector2.new(0.5,0.5)
-Main.Position    = UDim2.new(0.5,0,0.5,0)
-Main.Size        = UDim2.new(0, 520, 0, 440)
+Main.Name           = "MainFrame"
+Main.AnchorPoint    = Vector2.new(0.5,0.5)
+Main.Position       = UDim2.new(0.5,0,0.5,0)
+Main.Size           = UDim2.new(0, 520, 0, 440)
 Main.BackgroundColor3 = Color3.fromRGB(30,30,30)
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
 
--- заголовок
-local Title = Instance.new("TextLabel", Main)
-Title.AnchorPoint        = Vector2.new(0.5,0)
-Title.Position           = UDim2.new(0.5,0,0,10)
-Title.Size               = UDim2.new(1,-20,0,30)
-Title.BackgroundTransparency = 1
-Title.Text               = "FoxVuk Hub"
-Title.Font               = Enum.Font.GothamBold
-Title.TextSize           = 24
-Title.TextColor3         = Color3.fromRGB(255,255,255)
+-- Заголовок (за него можно тянуть)
+local TitleBar = Instance.new("Frame", Main)
+TitleBar.Name             = "TitleBar"
+TitleBar.Size             = UDim2.new(1, 0, 0, 40)
+TitleBar.Position         = UDim2.new(0,0,0,0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0,12)
 
--- подзаголовок
-local Subtitle = Instance.new("TextLabel", Main)
-Subtitle.AnchorPoint     = Vector2.new(0.5,0)
-Subtitle.Position        = UDim2.new(0.5,0,0,45)
-Subtitle.Size            = UDim2.new(1,-20,0,18)
-Subtitle.BackgroundTransparency = 1
-Subtitle.Text            = "Made by FoxVuk"
-Subtitle.Font            = Enum.Font.Gotham
-Subtitle.TextSize        = 14
-Subtitle.TextColor3      = Color3.fromRGB(200,200,200)
+local TitleLabel = Instance.new("TextLabel", TitleBar)
+TitleLabel.Size               = UDim2.new(1, -10, 1, 0)
+TitleLabel.Position           = UDim2.new(0, 5, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text               = "FoxVuk Hub - Made by FoxVuk"
+TitleLabel.Font               = Enum.Font.GothamBold
+TitleLabel.TextSize           = 18
+TitleLabel.TextColor3         = Color3.fromRGB(255,255,255)
+TitleLabel.TextXAlignment     = Enum.TextXAlignment.Left
 
--- список слева
+-- Логика перетаскивания
+do
+    local dragging, dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    TitleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            update(input)
+        end
+    end)
+end
+
+-- Левая панель: список скриптов
 local ListFrame = Instance.new("Frame", Main)
-ListFrame.Position       = UDim2.new(0,10,0,70)
-ListFrame.Size           = UDim2.new(0,160,1,-80)
+ListFrame.Name            = "ListFrame"
+ListFrame.Position        = UDim2.new(0,10,0,50)
+ListFrame.Size            = UDim2.new(0,160,1,-60)
 ListFrame.BackgroundTransparency = 1
 local ListLayout = Instance.new("UIListLayout", ListFrame)
 ListLayout.Padding       = UDim.new(0,8)
 ListLayout.SortOrder     = Enum.SortOrder.LayoutOrder
 
--- окно деталей
+-- Правая панель: детали со скроллом
 local Details = Instance.new("ScrollingFrame", Main)
-Details.Position           = UDim2.new(0,180,0,70)
-Details.Size               = UDim2.new(1,-190,1,-80)
+Details.Name               = "Details"
+Details.Position           = UDim2.new(0,180,0,50)
+Details.Size               = UDim2.new(1,-190,1,-60)
 Details.BackgroundTransparency = 1
 Details.ScrollBarThickness = 6
 Details.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
--- создаём Layout для деталей один раз
 local DetailLayout = Instance.new("UIListLayout", Details)
 DetailLayout.Padding       = UDim.new(0,8)
 DetailLayout.SortOrder     = Enum.SortOrder.LayoutOrder
 
--- утилиты для деталей
+-- Утилиты для деталей
 local function clearDetails()
-    for _, child in ipairs(Details:GetChildren()) do
-        if not child:IsA("UIListLayout") then
-            child:Destroy()
+    for _, c in ipairs(Details:GetChildren()) do
+        if not c:IsA("UIListLayout") then
+            c:Destroy()
         end
     end
 end
-
 local function makeLabel(text, font, size, color)
     local lbl = Instance.new("TextLabel", Details)
     lbl.BackgroundTransparency = 1
-    lbl.Size               = UDim2.new(1,0,0,0)
+    lbl.Size               = UDim2.new(1, 0, 0, 0)
     lbl.AutomaticSize      = Enum.AutomaticSize.Y
     lbl.Text               = text
     lbl.Font               = font
@@ -119,26 +224,29 @@ local function makeLabel(text, font, size, color)
     return lbl
 end
 
+-- Показ деталей выбранного скрипта
 local function showDetails(data)
     clearDetails()
-    makeLabel(data.displayName, Enum.Font.GothamBold, 22, Color3.fromRGB(255,255,255))
+    makeLabel(data.displayName, Enum.Font.GothamBold, 22, Color3.new(1,1,1))
     makeLabel((data.placeId~=0 and "Place ID: "..data.placeId) or "Place ID: Universal",
-              Enum.Font.Gotham, 16, Color3.fromRGB(200,200,200))
+              Enum.Font.Gotham, 16, Color3.new(0.8,0.8,0.8))
     makeLabel("Script: "..data.scriptName,
-              Enum.Font.Gotham, 16, Color3.fromRGB(200,200,200))
+              Enum.Font.Gotham, 16, Color3.new(0.8,0.8,0.8))
     makeLabel("Author: "..data.author,
-              Enum.Font.Gotham, 16, Color3.fromRGB(200,200,200))
+              Enum.Font.Gotham, 16, Color3.new(0.8,0.8,0.8))
     makeLabel("Description: "..data.description,
-              Enum.Font.Gotham, 14, Color3.fromRGB(200,200,200))
+              Enum.Font.Gotham, 14, Color3.new(0.8,0.8,0.8))
+
     local btn = Instance.new("TextButton", Details)
     btn.Size             = UDim2.new(0,220,0,40)
     btn.AutoButtonColor  = false
     btn.Text             = "Execute"
     btn.Font             = Enum.Font.GothamBold
     btn.TextSize         = 18
-    btn.TextColor3       = Color3.fromRGB(255,255,255)
+    btn.TextColor3       = Color3.new(1,1,1)
     btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+
     btn.MouseEnter:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3=Color3.fromRGB(60,60,60)}):Play()
     end)
@@ -157,7 +265,7 @@ local function showDetails(data)
     end)
 end
 
--- заполняем список
+-- Заполняем список кнопок
 for i, data in ipairs(scripts) do
     local btn = Instance.new("TextButton", ListFrame)
     btn.Size             = UDim2.new(1,0,0,40)
@@ -165,10 +273,9 @@ for i, data in ipairs(scripts) do
     btn.AutoButtonColor  = false
     btn.Font             = Enum.Font.Gotham
     btn.TextSize         = 18
-    btn.TextColor3       = Color3.fromRGB(255,255,255)
+    btn.TextColor3       = Color3.new(1,1,1)
     btn.Text             = data.displayName
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-    btn.LayoutOrder      = i
 
     btn.MouseEnter:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3=Color3.fromRGB(55,55,55)}):Play()
@@ -181,9 +288,9 @@ for i, data in ipairs(scripts) do
     end)
 end
 
--- переключение GUI
-UserInputService.InputBegan:Connect(function(input, gp)
-    if not gp and input.KeyCode==Enum.KeyCode.RightShift then
+-- Переключение видимости GUI по RightShift
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.RightShift then
         ScreenGui.Enabled = not ScreenGui.Enabled
     end
 end)
