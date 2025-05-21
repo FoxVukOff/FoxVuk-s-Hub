@@ -1,7 +1,6 @@
 --[[
     Концепт скрипта "Телепатия" для Roblox (группа c00lfox)
-    Версия с исправлением ошибки MessageSender при приеме через TextChatService
-    и использованием только SayMessageRequest для отправки данных.
+    Версия с исправлением ошибки в dummy FireServer и улучшенной диагностикой.
     ПРЕДУПРЕЖДЕНИЕ: Использование подобных скриптов может привести к бану.
 ]]
 
@@ -22,27 +21,36 @@ _G.CFX_GuiConnections = {}
 
 local ChatEvent
 local successChatEventInit, errChatEventInit = pcall(function()
-    -- 1. Попытка LegacyChatService
     local legacyChatService = game:GetService("LegacyChatService")
-    if legacyChatService and legacyChatService:FindFirstChild("SayMessageRequest") then
+    if legacyChatService and legacyChatService:FindFirstChild("SayMessageRequest") and legacyChatService.SayMessageRequest:IsA("RemoteEvent") then
         ChatEvent = legacyChatService:FindFirstChild("SayMessageRequest")
         print("CFX: Используется LegacyChatService SayMessageRequest для отправки.")
-        return -- Успех
+        return
     end
 
-    -- 2. Попытка DefaultChatSystemChatEvents
     if ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents") and
-       ReplicatedStorage.DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest") then
+       ReplicatedStorage.DefaultChatSystemChatEvents:FindFirstChild("SayMessageRequest") and
+       ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:IsA("RemoteEvent") then
         ChatEvent = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         print("CFX: Используется DefaultChatSystemChatEvents SayMessageRequest для отправки.")
-        return -- Успех
+        return
     end
     
-    -- 3. Если старые методы не найдены, отправка через чат будет отключена.
-    -- TextChatService:SendAsync показал проблемы с искажением данных (отправлял "{}"), поэтому пока не используется для этого.
     ChatEvent = {
-        FireServer = function(messageContent, targetChannelName) -- targetChannelName ("All") будет проигнорирован
-            warn("CFX Warning: No reliable chat sending method (SayMessageRequest) found. Telepathy sending disabled. Message was: " .. messageContent:sub(1,50) .. "...")
+        FireServer = function(messageContent, targetChannelName)
+            local messageStringRepresentation = ""
+            if type(messageContent) == "string" then
+                if #messageContent > 50 then
+                    messageStringRepresentation = messageContent:sub(1, 50) .. "..."
+                else
+                    messageStringRepresentation = messageContent
+                end
+            elseif messageContent == nil then
+                messageStringRepresentation = "[[nil message content]]"
+            else
+                messageStringRepresentation = "[[Non-string message content (type: " .. type(messageContent) .. ", value: " .. tostring(messageContent) .. ")]]"
+            end
+            warn("CFX Warning: No reliable chat sending method (SayMessageRequest) found. Telepathy sending disabled. Original message prefix: " .. messageStringRepresentation)
             if _G.CFX_ShowNotification then _G.CFX_ShowNotification("Error: Chat sending disabled!", Color3.fromRGB(255,100,50)) end
         end
     }
@@ -51,8 +59,7 @@ end)
 
 if not successChatEventInit then
     warn("CFX Critical Error при инициализации ChatEvent: " .. tostring(errChatEventInit))
-    -- Создаем пустышку, чтобы скрипт не ломался, если pcall сам по себе вызвал ошибку
-    ChatEvent = { FireServer = function(...) warn("CFX Error: Инициализация ChatEvent провалилась полностью.") end }
+    ChatEvent = { FireServer = function(...) warn("CFX Error: Инициализация ChatEvent провалилась полностью. Отправка невозможна.") end }
 end
 
 
@@ -83,40 +90,29 @@ function sendAction(command, ...)
     local encodedPayload = encodeData_semicolon(dataPayload)
     local messageToSend = GROUP_PREFIX .. encodedPayload
 
-    if #messageToSend > 199 then
+    if type(messageToSend) == "string" and #messageToSend > 199 then
         print("CFX Ошибка: Закодированное сообщение слишком длинное! (" .. #messageToSend .. " символов).")
         if _G.CFX_ShowNotification then _G.CFX_ShowNotification("Error: Message too long!", Color3.fromRGB(255,50,50)) end
         return
+    elseif type(messageToSend) ~= "string" then
+         -- Эта ситуация не должна возникать, если encodeData_semicolon и GROUP_PREFIX работают правильно
+        print("CFX КРИТИЧЕСКАЯ ОШИБКА: messageToSend не является строкой перед отправкой! Тип: " .. type(messageToSend))
+        if _G.CFX_ShowNotification then _G.CFX_ShowNotification("CRITICAL: Send type error!", Color3.fromRGB(255,0,0)) end
+        return
     end
-
+    
     if ChatEvent and ChatEvent.FireServer and typeof(ChatEvent.FireServer) == "function" then
-        local success, err = pcall(function() ChatEvent:FireServer(messageToSend, "All") end) -- "All" is for legacy compatibility
+        local success, err = pcall(function() ChatEvent:FireServer(messageToSend, "All") end)
         
-        -- Проверяем, не является ли ChatEvent.FireServer нашей "пустышкой"
-        -- (которая сама выводит предупреждение и уведомление)
-        local isDummyFireServer = false
-        if type(ChatEvent.FireServer) == "function" then
-            -- Сравнить с функцией-пустышкой сложно напрямую, но если сработал pcall,
-            -- и это не настоящий RemoteEvent, то наша пустышка уже вывела свои сообщения.
-            -- Если это настоящий RemoteEvent, то пустышка не вызывалась.
-            -- Поэтому, если pcall(ChatEvent:FireServer) был успешен и это НЕ пустышка, то выводим свое сообщение об успехе.
-            -- Если это пустышка, она уже вывела свое предупреждение.
-            -- Допущение: если ChatEvent - это RemoteEvent, то у него нет поля _isDummy (которое мы не ставили).
-            -- Более простой способ: если сообщение об ошибке от пустышки НЕ появилось, значит, это был реальный RemoteEvent.
-        end
-
         if success then
-            -- Сообщение об успешной отправке или попытке (если это не пустышка)
-            -- Пустышка сама выводит свое предупреждение, поэтому здесь дополнительное сообщение не всегда нужно, если это была пустышка.
-            -- Если это настоящий RemoteEvent, то выводим "Action Sent".
-             local isRealRemoteEvent = (ChatEvent ~= nil and ChatEvent.ClassName == "RemoteEvent") -- Проверка, если это настоящий RemoteEvent
+             local isRealRemoteEvent = (ChatEvent ~= nil and ChatEvent.ClassName == "RemoteEvent")
              if isRealRemoteEvent then
                 print("CFX: Отправлено действие: " .. dataPayload .. " (как: " .. messageToSend .. ")")
                 if _G.CFX_ShowNotification then _G.CFX_ShowNotification("Action Sent: " .. command, Color3.fromRGB(50,255,50)) end
              end
-             -- Если это была наша таблица-пустышка, она уже вывела свое уведомление "Error: Chat sending disabled!"
         else
-            warn("CFX Error во время ChatEvent:FireServer (вероятно, настоящий RemoteEvent): " .. tostring(err))
+            -- Ошибка произошла внутри ChatEvent:FireServer (либо настоящей, либо нашей пустышки, но пустышка теперь не должна сама по себе вызывать ошибку 'sub of table')
+            warn("CFX Error during ChatEvent:FireServer call: " .. tostring(err))
             if _G.CFX_ShowNotification then _G.CFX_ShowNotification("Error: FireServer call failed!", Color3.fromRGB(255,50,50)) end
         end
     else
@@ -126,9 +122,6 @@ function sendAction(command, ...)
 end
 
 function processIncomingMessage(senderPlayerName, message)
-    -- DEBUG: Раскомментируйте для отладки содержимого входящих сообщений
-    -- print("CFX DEBUG: processIncomingMessage from " .. senderPlayerName .. " with raw message: [" .. message .. "] (length: " .. #message .. ")")
-
     if not senderPlayerName or senderPlayerName == LocalPlayer.Name then return end
     if type(message) ~= "string" or #message < #GROUP_PREFIX then
         return
@@ -185,43 +178,35 @@ function handleCommand(command, args, senderName)
     end
 end
 
--- Listener for Legacy Chat (Player.Chatted)
 function onPlayerChatted(chattedPlayer, message) if chattedPlayer and chattedPlayer.Name then processIncomingMessage(chattedPlayer.Name, message) end end
 function onPlayerAdded(player) if player then table.insert(_G.CFX_GuiConnections, player.Chatted:Connect(function(m) onPlayerChatted(player,m) end)) end end
 for _,p in ipairs(PlayersService:GetPlayers()) do if p~=LocalPlayer then onPlayerAdded(p) end end
 table.insert(_G.CFX_GuiConnections, PlayersService.PlayerAdded:Connect(onPlayerAdded))
 
--- Listener for TextChatService (More robust sender identification)
 pcall(function()
     local TextChatService = game:GetService("TextChatService")
     if TextChatService and TextChatService.MessageReceived then
-        table.insert(_G.CFX_GuiConnections, TextChatService.MessageReceived:Connect(function(messageObject) -- messageObject is a TextChatMessage
-            if not (messageObject and messageObject:IsA("TextChatMessage")) then return end -- Проверка типа
-
+        table.insert(_G.CFX_GuiConnections, TextChatService.MessageReceived:Connect(function(messageObject)
+            if not (messageObject and messageObject:IsA("TextChatMessage")) then return end
             local senderPlayer = nil
-            local messageText = messageObject.Text or "" -- Гарантируем, что messageText это строка
-
-            -- Сначала пытаемся получить Player из TextSource (это должен быть объект Player)
+            local messageText = messageObject.Text or ""
             if messageObject.TextSource and messageObject.TextSource:IsA("Player") then
                 senderPlayer = messageObject.TextSource
-            -- Если TextSource не Player (или nil), пытаемся через MessageSender.UserId
             elseif messageObject.MessageSender and type(messageObject.MessageSender.UserId) == "number" and messageObject.MessageSender.UserId ~= 0 then
                 senderPlayer = PlayersService:GetPlayerByUserId(messageObject.MessageSender.UserId)
             end
-            
-            -- Если отправитель определен, это не локальный игрок, то обрабатываем
             if senderPlayer and senderPlayer.Name ~= LocalPlayer.Name then
                 processIncomingMessage(senderPlayer.Name, messageText)
             end
         end))
-        print("CFX: Listener TextChatService.MessageReceived active (MessageSender error fixed).")
+        print("CFX: Listener TextChatService.MessageReceived active.")
     else
-        print("CFX: TextChatService.MessageReceived не найден. Только Player.Chatted будет использоваться для приема, если доступен.")
+        print("CFX: TextChatService.MessageReceived не найден.")
     end
 end)
 
 -- ==================================================
--- ГРАФИЧЕСКИЙ ИНТЕРФЕЙС (GUI) - без изменений в этой секции
+-- ГРАФИЧЕСКИЙ ИНТЕРФЕЙС (GUI)
 -- ==================================================
 function CreateExecutorGUI()
     local playerGui = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") or CoreGui
@@ -242,7 +227,7 @@ function CreateExecutorGUI()
     local padding = 8; local inputStartY = 55; local currentY = inputStartY
     local playerPosTitle = Instance.new("TextLabel"); playerPosTitle.Parent = mainFrame; playerPosTitle.Size = UDim2.new(1, -padding*2, 0, 18); playerPosTitle.Position = UDim2.new(0, padding, 0, currentY); playerPosTitle.Font = Enum.Font.SourceSansSemibold; playerPosTitle.Text = "Your Position (X, Y, Z):"; playerPosTitle.TextColor3 = Color3.fromRGB(200, 200, 200); playerPosTitle.TextSize = 13; playerPosTitle.TextXAlignment = Enum.TextXAlignment.Left; playerPosTitle.BackgroundTransparency = 1; currentY = currentY + 18
     local playerPosXLabel, playerPosYLabel, playerPosZLabel = Instance.new("TextLabel"), Instance.new("TextLabel"), Instance.new("TextLabel")
-    local posLabels_gui = {{playerPosXLabel, "X: "}, {playerPosYLabel, "Y: "}, {playerPosZLabel, "Z: "}} -- Изменено имя переменной, чтобы избежать конфликта
+    local posLabels_gui = {{playerPosXLabel, "X: "}, {playerPosYLabel, "Y: "}, {playerPosZLabel, "Z: "}}
     for i, pLabelData in ipairs(posLabels_gui) do local pLabel, prefix = pLabelData[1], pLabelData[2]
         pLabel.Parent = mainFrame; pLabel.Size = UDim2.new(0.333, -padding, 0, 18); pLabel.Position = UDim2.new(0 + (i-1)*0.333, padding, 0, currentY); pLabel.Font = Enum.Font.SourceSans; pLabel.Text = prefix .. "N/A"; pLabel.TextColor3 = Color3.fromRGB(190, 190, 190); pLabel.TextSize = 12; pLabel.TextXAlignment = Enum.TextXAlignment.Left; pLabel.BackgroundTransparency = 1
     end; currentY = currentY + 18 + padding
@@ -281,4 +266,4 @@ if LocalPlayer then
         table.insert(_G.CFX_GuiConnections, playerAddedConn_gui)
     end
 else warn("CFX: LocalPlayer not found at GUI creation.") end
-print("CFX: Скрипт 'Телепатия' (vGUI, PosDisplay, TCS Receive Fix, SayMessageRequest Send Only) загружен.")
+print("CFX: Скрипт 'Телепатия' (vGUI, PosDisplay, Robust Dummy Send) загружен.")
